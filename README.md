@@ -34,7 +34,7 @@ python mainHyperDenseNet.py
 - The current version includes HyperDenseNet for 2 and 3 modalities. To run either one or the other, you simply need to specify the number of modalities on the input arg numModal
 ```
 --numModal n
-'''
+```
 where n is the number of modalities.
 - Patch size, and sampling steps values are hard-coded. We will work on a generalization of this, allowing the user to decide the input patch size and the frequency to sample the patches.
 - We are working on adding an external testing function.
