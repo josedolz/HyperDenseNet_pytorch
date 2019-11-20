@@ -145,6 +145,7 @@ def runTraining(opts):
     moda_2_val = root_dir + 'Validation/T1_IR'
     moda_3_val = root_dir + 'Validation/T2_FLAIR'
     moda_g_val = root_dir + 'Validation/GT'
+
     print(' --------------------')
     print(' - Validation Set: -')
     if os.path.exists(moda_1):

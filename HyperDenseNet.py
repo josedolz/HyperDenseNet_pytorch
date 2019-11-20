@@ -166,7 +166,7 @@ class HyperDenseNet_2Mod(nn.Module):
         # ----- First layer ------ #
         # get 2 of the channels as 5D tensors
         y1t = self.conv1_Top(input[:, 0:1, :, :, :])
-        y1b = self.conv1_Bottom(input[:, 2:3, :, :, :])
+        y1b = self.conv1_Bottom(input[:, 1:2, :, :, :])
 
         # ----- Second layer ------ #
         # concatenate
