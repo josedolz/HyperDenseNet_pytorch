@@ -31,8 +31,6 @@ python mainHyperDenseNet.py
 ```
 --modality_dirs T1 T2_FLAIR
 ```
-
-- In the runTraining function, you have to change the name of the subfolders to the names you have in your dataset (lines 128-131 and 144-147).
 - Image names should be the same across folders (e.g., )
 ## Current version
 - The current version includes HyperDenseNet for 2 and 3 modalities. To run either one or the other, you simply need to specify the number of modalities on the input arg numModal
