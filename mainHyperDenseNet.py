@@ -24,7 +24,8 @@ import nibabel as nib
 def evaluateSegmentation(gt,pred):
     pred = pred.astype(dtype='int')
     numClasses = np.unique(gt)
-    dsc = []
+
+    dsc = np.zeros((1, len(numClasses) - 1))
 
     for i_n in range(1,len(numClasses)):
         gt_c = np.zeros(gt.shape)
@@ -32,7 +33,7 @@ def evaluateSegmentation(gt,pred):
         gt_c[np.where(gt==i_n)]=1
         y_c[np.where(pred==i_n)]=1
 
-        dsc.append(dc(gt_c,y_c))
+        dsc[0, i_n - 1] = dc(gt_c, y_c)
     return dsc
     
 def numpy_to_var(x):
@@ -42,7 +43,7 @@ def numpy_to_var(x):
         torch_tensor = torch_tensor.cuda()
     return Variable(torch_tensor)
     
-def inference(network, moda_1, moda_2, moda_3, moda_g, imageNames, epoch):
+def inference(network, moda_1, moda_2, moda_3, moda_g, imageNames, epoch, folder_save):
     '''root_dir = './Data/MRBrainS/DataNii/'
     model_dir = 'model'
 
@@ -57,7 +58,7 @@ def inference(network, moda_1, moda_2, moda_3, moda_g, imageNames, epoch):
         softMax.cuda()
         network.cuda()
 
-    dscAll = []
+    dscAll = np.zeros((len(imageNames), numClasses - 1))  # 1 class is the background!!
     for i_s in range(len(imageNames)):
         patch_1, patch_2, patch_3, patch_g, img_shape = load_data_test(moda_1, moda_2, moda_3, moda_g, imageNames[i_s]) # hardcoded to read the first file. Loop this to get all files
         patchSize = 27
@@ -77,7 +78,7 @@ def inference(network, moda_1, moda_2, moda_3, moda_g, imageNames, epoch):
             pred_y = softMax(pred)
             pred_numpy[i_p,:,:,:,:] = pred_y.cpu().data.numpy()
 
-            printProgressBar(i_p + 1, totalOp,
+            printProgressBar(i_s * ((totalOp + 0.0) / len(imageNames)) + i_p + 1, totalOp,
                              prefix="[Validation] ",
                              length=15)
                              
@@ -98,16 +99,23 @@ def inference(network, moda_1, moda_2, moda_3, moda_g, imageNames, epoch):
 
         img_pred = nib.Nifti1Image(bin_seg, np.eye(4))
         img_gt = nib.Nifti1Image(gt, np.eye(4))
-        # img_gt = nib.Nifti1Image(gt, np.eye(4))
-        name = 'Pred_Epoch_' + str(epoch)+'.nii.gz'
 
-        namegt = 'GT_Epoch_' + str(epoch) + '.nii.gz'
+        img_name = imageNames[i_s].split('.nii')
+        name = 'Pred_' + img_name[0] + '_Epoch_' + str(epoch) + '.nii.gz'
 
-        nib.save(img_pred, name)
-        nib.save(img_gt, namegt)
+        namegt = 'GT_' + img_name[0] + '_Epoch_' + str(epoch) + '.nii.gz'
+
+        if not os.path.exists(folder_save + 'Segmentations/'):
+            os.makedirs(folder_save + 'Segmentations/')
+
+        if not os.path.exists(folder_save + 'GT/'):
+            os.makedirs(folder_save + 'GT/')
+
+        nib.save(img_pred, folder_save + 'Segmentations/' + name)
+        nib.save(img_gt, folder_save + 'GT/' + namegt)
 
         dsc = evaluateSegmentation(gt,bin_seg)
-        dscAll.append(dsc)
+        dscAll[i_s, :] = dsc
 
     return dscAll
         
@@ -239,7 +247,7 @@ def runTraining(opts):
         print(' Epoch: {}, loss: {}'.format(e_i,np.mean(lossEpoch)))
 
         if (e_i%10)==0:
-            dsc = inference(hdNet,moda_1_val, moda_2_val, moda_3_val, moda_g_val, imageNames_val,e_i)
+            dsc = inference(hdNet,moda_1_val, moda_2_val, moda_3_val, moda_g_val, imageNames_val,e_i, opts.save_dir)
             dscAll.append(dsc)
 
             print(' Metrics: DSC(mean): {} per class: 1({}) 2({}) 3({})'.format(np.mean(dsc),dsc[0][0],dsc[0][1],dsc[0][2]))
@@ -264,6 +272,7 @@ def runTraining(opts):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--root_dir', type=str, default='./Data/MRBrainS/DataNii/', help='directory containing the train and val folders')
+    parser.add_argument('--save_dir', type=str, default='./Results/', help='directory ot save results')
     parser.add_argument('--modelName', type=str, default='HyperDenseNet_2Mod', help='name of the model')
     parser.add_argument('--numClasses', type=int, default=4, help='Number of classes (Including background)')
     parser.add_argument('--numSamplesEpoch', type=int, default=1000, help='Number of samples per epoch')
