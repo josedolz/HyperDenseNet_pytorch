@@ -165,6 +165,7 @@ class HyperDenseNet_2Mod(nn.Module):
     def forward(self, input):
         # ----- First layer ------ #
         # get 2 of the channels as 5D tensors
+        #pdb.set_trace()
         y1t = self.conv1_Top(input[:, 0:1, :, :, :])
         y1b = self.conv1_Bottom(input[:, 1:2, :, :, :])
 

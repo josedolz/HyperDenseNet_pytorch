@@ -7,7 +7,7 @@ import os
 import numpy as np
 from sampling import reconstruct_volume
 from sampling import my_reconstruct_volume
-from sampling import load_data_train
+from sampling import load_data_trainG
 from sampling import load_data_test
 
 import torch
@@ -43,7 +43,7 @@ def numpy_to_var(x):
         torch_tensor = torch_tensor.cuda()
     return Variable(torch_tensor)
     
-def inference(network, moda_1, moda_2, moda_3, moda_g, imageNames, epoch, folder_save):
+def inference(network, moda_n, moda_g, imageNames, epoch, folder_save, number_modalities):
     '''root_dir = './Data/MRBrainS/DataNii/'
     model_dir = 'model'
 
@@ -60,29 +60,34 @@ def inference(network, moda_1, moda_2, moda_3, moda_g, imageNames, epoch, folder
 
     dscAll = np.zeros((len(imageNames), numClasses - 1))  # 1 class is the background!!
     for i_s in range(len(imageNames)):
-        patch_1, patch_2, patch_3, patch_g, img_shape = load_data_test(moda_1, moda_2, moda_3, moda_g, imageNames[i_s]) # hardcoded to read the first file. Loop this to get all files
+        if number_modalities == 2:
+            patch_1, patch_2, patch_g, img_shape = load_data_test(moda_n, moda_g, imageNames[i_s], number_modalities)  # hardcoded to read the first file. Loop this to get all files
+        if number_modalities == 3:
+            patch_1, patch_2, patch_3, patch_g, img_shape = load_data_test([moda_n], moda_g, imageNames[i_s], number_modalities) # hardcoded to read the first file. Loop this to get all files
+
         patchSize = 27
         patchSize_gt = 9
-        x = np.zeros((0, 3, patchSize, patchSize, patchSize))
-        x = np.vstack((x, np.zeros((patch_1.shape[0], 3, patchSize, patchSize, patchSize))))
+
+        x = np.zeros((0, number_modalities, patchSize, patchSize, patchSize))
+        x = np.vstack((x, np.zeros((patch_1.shape[0], number_modalities, patchSize, patchSize, patchSize))))
         x[:, 0, :, :, :] = patch_1
         x[:, 1, :, :, :] = patch_2
-        x[:, 2, :, :, :] = patch_3
+        if (number_modalities==3):
+            x[:, 2, :, :, :] = patch_3
         
         pred_numpy = np.zeros((0,numClasses,patchSize_gt,patchSize_gt,patchSize_gt))
         pred_numpy = np.vstack((pred_numpy, np.zeros((patch_1.shape[0], numClasses, patchSize_gt, patchSize_gt, patchSize_gt))))
         totalOp = len(imageNames)*patch_1.shape[0]
-        pred = network(numpy_to_var(x[0,:,:,:,:]).view(1,3,patchSize,patchSize,patchSize))
+        pred = network(numpy_to_var(x[0,:,:,:,:]).view(1,number_modalities,patchSize,patchSize,patchSize))
         for i_p in range(patch_1.shape[0]):
-            pred = network(numpy_to_var(x[i_p,:,:,:,:].reshape(1,3,patchSize,patchSize,patchSize)))
+            pred = network(numpy_to_var(x[i_p,:,:,:,:].reshape(1,number_modalities,patchSize,patchSize,patchSize)))
             pred_y = softMax(pred)
             pred_numpy[i_p,:,:,:,:] = pred_y.cpu().data.numpy()
 
             printProgressBar(i_s * ((totalOp + 0.0) / len(imageNames)) + i_p + 1, totalOp,
                              prefix="[Validation] ",
                              length=15)
-                             
-        
+
         # To reconstruct the predicted volume
         extraction_step_value = 9
         pred_classes = np.argmax(pred_numpy, axis=1)
@@ -120,22 +125,42 @@ def inference(network, moda_1, moda_2, moda_3, moda_g, imageNames, epoch, folder
     return dscAll
         
 def runTraining(opts):
-    print('-' * 40)
+    print('' * 41)
+    print('~' * 50)
+    print('~~~~~~~~~~~~~~~~~  PARAMETERS ~~~~~~~~~~~~~~~~')
+    print('~' * 50)
+    print('  - Image modalities: {}'.format(opts.numModal))
+    print('  - Number of classes: {}'.format(opts.numClasses))
+    print('  - Directory to load images: {}'.format(opts.root_dir))
+    print('  - Directory to save results: {}'.format(opts.save_dir))
+    print('  - To model will be saved as : {}'.format(opts.modelName))
+    print('-' * 41)
+    print('  - Number of epochs: {}'.format(opts.numClasses))
+    print('  - Batch size: {}'.format(opts.batchSize))
+    print('  - Number of samples per epoch: {}'.format(opts.numSamplesEpoch))
+    print('  - Learning rate: {}'.format(opts.l_rate))
+    print('' * 41)
+
+    print('-' * 41)
     print('~~~~~~~~  Starting the training... ~~~~~~')
-    print('-' * 40)
+    print('-' * 41)
+    print('' * 40)
 
     samplesPerEpoch = opts.numSamplesEpoch
     batch_size = opts.batchSize
 
-    lr = 0.0002
+    lr = opts.l_rate
     epoch = opts.numEpochs
     
     root_dir = opts.root_dir
     model_name = opts.modelName
 
     moda_1 = root_dir + 'Training/T1'
-    moda_2 = root_dir + 'Training/T1_IR'
-    moda_3 = root_dir + 'Training/T2_FLAIR'
+    moda_2 = root_dir + 'Training/T2_FLAIR'
+
+    if (opts.numModal == 3):
+        moda_3 = root_dir + 'Training/T1_IR'
+
     moda_g = root_dir + 'Training/GT'
 
     print(' --- Getting image names.....')
@@ -150,8 +175,10 @@ def runTraining(opts):
         raise Exception(' - {} does not exist'.format(moda_1))
 
     moda_1_val = root_dir + 'Validation/T1'
-    moda_2_val = root_dir + 'Validation/T1_IR'
-    moda_3_val = root_dir + 'Validation/T2_FLAIR'
+    moda_2_val = root_dir + 'Validation/T2_FLAIR'
+
+    if (opts.numModal == 3):
+        moda_3_val = root_dir + 'Validation/T1_IR'
     moda_g_val = root_dir + 'Validation/GT'
 
     print(' --------------------')
@@ -170,8 +197,11 @@ def runTraining(opts):
     
     # Define HyperDenseNet
     # To-Do. Get as input the config settings to create different networks
-    hdNet = HyperDenseNet(num_classes)
-    #hdNet = HyperDenseNet_2Mod(num_classes)
+    if (opts.numModal == 2):
+        hdNet = HyperDenseNet_2Mod(num_classes)
+    if (opts.numModal == 3):
+        hdNet = HyperDenseNet(num_classes)
+    #
 
     '''try:
         hdNet = torch.load(os.path.join(model_name, "Best_" + model_name + ".pkl"))
@@ -192,25 +222,27 @@ def runTraining(opts):
     optimizer = torch.optim.Adam(hdNet.parameters(), lr=lr, betas=(0.9, 0.999))
     
     print(" ~~~~~~~~~~~ Starting the training ~~~~~~~~~~")
-    print(' --------- Params: ---------')
-    
     numBatches = int(samplesPerEpoch/batch_size)
-
-    print(' - Number of batches: {} ----'.format(numBatches) )
-  
     dscAll = []
     for e_i in range(epoch):
         hdNet.train()
         
         lossEpoch = []
 
-        x_train, y_train, img_shape = load_data_train(moda_1, moda_2, moda_3, moda_g, imageNames_train, samplesPerEpoch) # hardcoded to read the first file. Loop this to get all files. Karthik
+        if (opts.numModal == 2):
+            imgPaths = [moda_1, moda_2]
+
+        if (opts.numModal == 3):
+            imgPaths = [moda_1, moda_2, moda_3]
+
+        x_train, y_train, img_shape = load_data_trainG(imgPaths, moda_g, imageNames_train, samplesPerEpoch, opts.numModal) # hardcoded to read the first file. Loop this to get all files. Karthik
 
         for b_i in range(numBatches):
             optimizer.zero_grad()
             hdNet.zero_grad()
             
             MRIs         = numpy_to_var(x_train[b_i*batch_size:b_i*batch_size+batch_size,:,:,:,:])
+
             Segmentation = numpy_to_var(y_train[b_i*batch_size:b_i*batch_size+batch_size,:,:,:])
 
             segmentation_prediction = hdNet(MRIs)
@@ -247,7 +279,14 @@ def runTraining(opts):
         print(' Epoch: {}, loss: {}'.format(e_i,np.mean(lossEpoch)))
 
         if (e_i%10)==0:
-            dsc = inference(hdNet,moda_1_val, moda_2_val, moda_3_val, moda_g_val, imageNames_val,e_i, opts.save_dir)
+
+            if (opts.numModal == 2):
+                moda_n = [moda_1_val, moda_2_val]
+            if (opts.numModal == 3):
+                moda_n = [moda_1_val, moda_2_val, moda_3_val]
+
+            dsc = inference(hdNet,moda_n, moda_g_val, imageNames_val,e_i, opts.save_dir,opts.numModal)
+
             dscAll.append(dsc)
 
             print(' Metrics: DSC(mean): {} per class: 1({}) 2({}) 3({})'.format(np.mean(dsc),dsc[0][0],dsc[0][1],dsc[0][2]))
@@ -265,6 +304,7 @@ def runTraining(opts):
 
         if (100+e_i%20)==0:
              lr = lr/2
+             print(' Learning rate decreased to : {}'.format(lr))
              for param_group in optimizer.param_groups:
                 param_group['lr'] = lr
                         
@@ -274,10 +314,12 @@ if __name__ == '__main__':
     parser.add_argument('--root_dir', type=str, default='./Data/MRBrainS/DataNii/', help='directory containing the train and val folders')
     parser.add_argument('--save_dir', type=str, default='./Results/', help='directory ot save results')
     parser.add_argument('--modelName', type=str, default='HyperDenseNet_2Mod', help='name of the model')
+    parser.add_argument('--numModal', type=int, default=2, help='Number of image modalities')
     parser.add_argument('--numClasses', type=int, default=4, help='Number of classes (Including background)')
     parser.add_argument('--numSamplesEpoch', type=int, default=1000, help='Number of samples per epoch')
     parser.add_argument('--numEpochs', type=int, default=500, help='Number of epochs')
     parser.add_argument('--batchSize', type=int, default=10, help='Batch size')
+    parser.add_argument('--l_rate', type=float, default=0.0002, help='Learning rate')
 
     opts = parser.parse_args()
     print(opts)
