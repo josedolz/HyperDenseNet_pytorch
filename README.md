@@ -31,7 +31,11 @@ python mainHyperDenseNet.py
 - In the runTraining function, you have to change the name of the subfolders to the names you have in your dataset (lines 128-131 and 144-147).
 - Image names should be the same across folders (e.g., )
 ## Current version
-- The current version includes HyperDenseNet for 2 and 3 modalities. As it is, the code runs the training for 3 modalities. We are working on making the code easier to quickly change between 2 and 3 (or more) modalities. If you cannot wait and want to use the 2-versions architecture, you can simply remove the the third folder from loading or sampling operations (i.e., moda_3_val) and call the model 'HyperDenseNet_2Mod' instead of the model 'HyperDenseNet' 
+- The current version includes HyperDenseNet for 2 and 3 modalities. To run either one or the other, you simply need to specify the number of modalities on the input arg numModal
+```
+--numModal n
+'''
+where n is the number of modalities.
 - Patch size, and sampling steps values are hard-coded. We will work on a generalization of this, allowing the user to decide the input patch size and the frequency to sample the patches.
 - We are working on adding an external testing function.
 - In the original paper we used a ROI to mask out the background. This will help during sampling patches for training, as well as remove outliers on the testing images, since the receptive field of this network is small.
