@@ -5,6 +5,8 @@ This is a Pytorch implementation of Hyperdensenet. For the detailed architecture
 
 This is not the original implementation of the paper (Do not use it to reproduce the resuls)
 
+### Design of the Proposed Model
+![model](images/model.png)
 
 ### Dependencies
 This code depends on the following libraries:
