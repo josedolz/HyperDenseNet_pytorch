@@ -129,9 +129,11 @@ def runTraining(opts):
     print('~' * 50)
     print('~~~~~~~~~~~~~~~~~  PARAMETERS ~~~~~~~~~~~~~~~~')
     print('~' * 50)
-    print('  - Image modalities: {}'.format(opts.numModal))
+    print('  - Number of image modalities: {}'.format(opts.numModal))
     print('  - Number of classes: {}'.format(opts.numClasses))
     print('  - Directory to load images: {}'.format(opts.root_dir))
+    for i in range(len(opts.modality_dirs)):
+        print('  - Modality {}: {}'.format(i+1,opts.modality_dirs[i]))
     print('  - Directory to save results: {}'.format(opts.save_dir))
     print('  - To model will be saved as : {}'.format(opts.modelName))
     print('-' * 41)
@@ -155,11 +157,13 @@ def runTraining(opts):
     root_dir = opts.root_dir
     model_name = opts.modelName
 
-    moda_1 = root_dir + 'Training/T1'
-    moda_2 = root_dir + 'Training/T2_FLAIR'
+    if not (len(opts.modality_dirs)== opts.numModal): raise AssertionError
+
+    moda_1 = root_dir + 'Training/' + opts.modality_dirs[0]
+    moda_2 = root_dir + 'Training/' + opts.modality_dirs[1]
 
     if (opts.numModal == 3):
-        moda_3 = root_dir + 'Training/T1_IR'
+        moda_3 = root_dir + 'Training/' + opts.modality_dirs[2]
 
     moda_g = root_dir + 'Training/GT'
 
@@ -174,11 +178,11 @@ def runTraining(opts):
     else:
         raise Exception(' - {} does not exist'.format(moda_1))
 
-    moda_1_val = root_dir + 'Validation/T1'
-    moda_2_val = root_dir + 'Validation/T2_FLAIR'
+    moda_1_val = root_dir + 'Validation/' + opts.modality_dirs[0]
+    moda_2_val = root_dir + 'Validation/' + opts.modality_dirs[1]
 
     if (opts.numModal == 3):
-        moda_3_val = root_dir + 'Validation/T1_IR'
+        moda_3_val = root_dir + 'Validation/' + opts.modality_dirs[2]
     moda_g_val = root_dir + 'Validation/GT'
 
     print(' --------------------')
@@ -312,6 +316,7 @@ def runTraining(opts):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--root_dir', type=str, default='./Data/MRBrainS/DataNii/', help='directory containing the train and val folders')
+    parser.add_argument('--modality_dirs', nargs='+', default=['T1','T2_FLAIR'], help='subdirectories containing the multiple modalities')
     parser.add_argument('--save_dir', type=str, default='./Results/', help='directory ot save results')
     parser.add_argument('--modelName', type=str, default='HyperDenseNet_2Mod', help='name of the model')
     parser.add_argument('--numModal', type=int, default=2, help='Number of image modalities')

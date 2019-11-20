@@ -27,7 +27,11 @@ python mainHyperDenseNet.py
 ## Preparing your data
 - To use your own data, you will have to specify the path to the folder containing this data (--root_dir).
 - Images have to be in nifti (.nii) format
-- You have to split your data into two folders: Training/Validation. Each folder will contain N sub-folders: N-1 subfolders that will contain each modality and GT, which contain the nifti files for the images and their corresponding ground truths. 
+- You have to split your data into two folders: Training/Validation. Each folder will contain N sub-folders: N-1 subfolders that will contain each modality and GT, which contain the nifti files for the images and their corresponding ground truths. Then, for training, you only need to specify which subfolders you want to use in the command line. For example:
+```
+--modality_dirs T1 T2_FLAIR
+```
+
 - In the runTraining function, you have to change the name of the subfolders to the names you have in your dataset (lines 128-131 and 144-147).
 - Image names should be the same across folders (e.g., )
 ## Current version
