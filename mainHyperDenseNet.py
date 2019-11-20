@@ -172,9 +172,6 @@ def runTraining(opts):
         print("--------model not restored--------")
         pass'''
 
-
-    #hdNet = HyperDenseNet_parametrizable()
-    
     softMax = nn.Softmax()
     CE_loss = nn.CrossEntropyLoss()
     

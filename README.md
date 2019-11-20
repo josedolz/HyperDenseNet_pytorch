@@ -3,7 +3,7 @@
 
 This is a Pytorch implementation of Hyperdensenet. For the detailed architecture please refer to https://arxiv.org/abs/1804.02967
 
-This is not the original implementation of the paper. Not to reproduce the resuls
+This is not the original implementation of the paper (Do not use it to reproduce the resuls)
 
 
 ### Dependencies
@@ -28,6 +28,8 @@ python mainHyperDenseNet.py
 - You have to split your data into two folders: Training/Validation. Each folder will contain N sub-folders: N-1 subfolders that will contain each modality and GT, which contain the nifti files for the images and their corresponding ground truths. 
 - In the runTraining function, you have to change the name of the subfolders to the names you have in your dataset (lines 128-131 and 144-147).
 
+## Current version
+- The current version includes HyperDenseNet for 2 and 3 modalities. As it is, the code runs the training for 3 modalities. We are working on making the code easier to quickly change between 2 and 3 (or more) modalities. If you cannot wait and want to use the 2-versions architecture, you can simply remove the the third folder from loading or sampling operations (i.e., moda_3_val) and call the model 'HyperDenseNet_2Mod' instead of the model 'HyperDenseNet' 
 
 If you use this code in your research, please consider citing the following paper:
 
