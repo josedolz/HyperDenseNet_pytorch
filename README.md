@@ -3,7 +3,7 @@
 
 This is a Pytorch implementation of Hyperdensenet. For the detailed architecture please refer to the original paper: [link](https://arxiv.org/abs/1804.02967)
 
-This is not the original implementation of the paper (Do not use it to reproduce the resuls)
+This is not the original implementation of the paper (Do not use it to reproduce the results). The original code is based on Theano and can be found [here](https://github.com/josedolz/HyperDenseNet)
 
 ### Design of the Proposed Model
 ![model](images/model.png)
